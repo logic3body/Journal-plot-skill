@@ -22,7 +22,7 @@ np.savez('demo_data.npz', x=x, y=y)
 print("Data saved to demo_data.npz")
 
 # === Optional Journal-Grade Plotting ===
-PLOT_FIGURE = True  # Set to True to enable plotting
+PLOT_FIGURE = False  # Set to True to enable plotting
 
 def plot_journal_figure(x, y, publisher='IEEE'):
     """Generate publication-ready error bar line plot for IEEE"""

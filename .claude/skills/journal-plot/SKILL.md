@@ -13,26 +13,72 @@ When the user describes a figure request, the skill should:
 
 1. **Read the user's existing Python file** (e.g., demo_calculation.py)
 2. **Analyze the file structure** - identify existing data variables (x, y, arrays, etc.)
-3. **Inject journal-grade plotting code** as a conditional branch at the end of the file:
-   - Add a `PLOT_FIGURE = False` flag (set to `True` to enable)
-   - Create a `plot_journal_figure()` function using existing data variables
-   - Wrap in an `if PLOT_FIGURE:` block so plotting is optional
-4. **Preserve all original computation logic** - never modify existing code
+3. **Check for existing injection** - detect if `plot_journal_figure` already exists
+4. **Inject journal-grade plotting code** following the injection rules below
+5. **Preserve all original computation logic** - never modify existing code
 
-Example injection structure:
-```python
-# === Optional Journal-Grade Plotting ===
-PLOT_FIGURE = False  # Set to True to enable plotting
+### Injection Decision Tree (Pseudocode)
 
-def plot_journal_figure(x, y, publisher='IEEE'):
-    """Generate publication-ready figure"""
-    # ... matplotlib code with journal settings ...
-    pass
-
-if PLOT_FIGURE:
-    # Uses existing data from the file
-    plot_journal_figure(x, y, publisher='IEEE')
 ```
+1. READ file content
+
+2. IF `def plot_journal_figure` exists in file:
+   → ASK user: "文件已存在绘图函数，是否覆盖？"
+   → IF user says NO:
+       → INFORM user they can call existing function directly
+       → EXIT
+   → IF user says YES:
+       → REPLACE only function body (keep existing signature)
+       → EXIT injection part
+   → END
+
+3. IF `def plot_journal_figure` does NOT exist:
+   → ANALYZE file structure:
+     a. IF first def/class found:
+        → INSERT `import matplotlib.pyplot as plt` BEFORE it
+        → APPEND plotting code block to end of file
+     b. ELSE IF `import numpy as np` found:
+        → INSERT `import matplotlib.pyplot as plt` AFTER it
+        → APPEND plotting code block to end of file
+     c. ELSE (no imports at all):
+        → INSERT after shebang + docstring
+        → APPEND plotting code block to end of file
+   → END
+
+4. VALIDATE required variables (x, y, etc.) exist in file:
+   → IF missing:
+       → ERROR: "文件缺少必要的数据变量，请先确保 {var_names} 存在"
+       → EXIT without injecting
+   → IF all present:
+       → PROCEED with injection
+
+5. APPEND to end of file:
+   ```python
+   # === Optional Journal-Grade Plotting ===
+   PLOT_FIGURE = False  # Set to True to enable plotting
+
+   def plot_journal_figure(x, y, publisher='IEEE'):
+       """Generate publication-ready figure"""
+       import matplotlib.pyplot as plt
+       # ... matplotlib code with journal settings ...
+       pass
+
+   if PLOT_FIGURE:
+       # Uses existing data from the file
+       plot_journal_figure(x, y, publisher='IEEE')
+   ```
+```
+
+### Key Injection Rules
+
+| Situation | Action |
+|-----------|--------|
+| `plot_journal_figure` exists | Ask user, replace body only if confirmed |
+| No `plot_journal_figure` + has def/class | Import before first def/class |
+| No `def/class` + has `import numpy` | Import after numpy import |
+| No imports at all | After shebang + docstring |
+| Required variables missing | Error out, do not inject |
+| User refuses overwrite | Inform about direct usage, exit |
 
 **Key behaviors:**
 - Use `Edit` or `Write` tools to modify the user's existing file
