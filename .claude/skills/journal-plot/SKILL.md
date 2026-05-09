@@ -338,7 +338,7 @@ Chinese triggers / 中文触发词：
 - "EPS/PDF/TIFF 投稿格式"
 - "帮我添加绘图", "在文件中添加图表"
 
-### Runtime Error Auto-Fix
+## Runtime Error Auto-Fix
 
 When the user runs the script and it fails, they can trigger the skill again with the error message. The skill will analyze and attempt to fix.
 
@@ -384,25 +384,6 @@ When the user runs the script and it fails, they can trigger the skill again wit
 2. 确认所需的 Python 包已安装（matplotlib, numpy, seaborn）
 3. 或者描述您想要的操作，我会重新生成代码
 ```
-
-Use this skill when the user mentions:
-- "publication figure", "journal figure", "figure for submission", "academic figure"
-- "Nature/Elsevier/Springer/IEEE/PLOS figure"
-- "EPS/PDF/TIFF for journal submission"
-- "ready-to-submit plot"
-- Wants to create a scientific figure that will be submitted to a journal
-
-**File editing mode** (user mentions existing file):
-- "帮我添加绘图到 demo_calculation.py"
-- "在 script.py 中添加 IEEE 标准的图表"
-- "add plotting to my existing file"
-
-Chinese triggers / 中文触发词：
-- "期刊图表", "期刊图片", "发表级图片", "投稿图"
-- "学术图表", "期刊投稿", "科研图表"
-- "Nature/Elsevier/Springer/IEEE/PLOS 图表"
-- "EPS/PDF/TIFF 投稿格式"
-- "帮我添加绘图", "在文件中添加图表"
 
 ## Journal Format Specifications
 
