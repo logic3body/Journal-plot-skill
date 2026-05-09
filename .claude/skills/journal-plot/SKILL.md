@@ -105,6 +105,69 @@ bar_keywords = {'count', 'freq', 'category', 'label', 'group'}
 error_keywords = {'mean', 'std', 'error', 'sem', 'uncertainty'}
 ```
 
+### Step 2.5: Multi-Panel Suggestion
+
+Before presenting chart options, check if a **multi-panel figure** would be suitable:
+
+**Trigger conditions:**
+- 3 or more 1D arrays of **same length** → suggest side-by-side panels
+- Multiple arrays with **related names** but different conditions → e.g., `y1`, `y2`, `y3` all from same experiment
+- Variables that represent **different measurements of same phenomenon** → e.g., `temperature`, `pressure`, `humidity`
+
+**Detection logic:**
+```python
+# If these conditions met, suggest multi-panel:
+- len(same_length_arrays) >= 3
+- OR arrays with numeric suffixes: y1, y2, y3
+- OR semantic grouping: temp/pressure/humidity all present
+```
+
+**Suggestion format (Chinese):**
+```
+检测到您有 3 个相关数组：
+- `y1` (100 points)
+- `y2` (100 points)
+- `y3` (100 points)
+
+建议：您可以制作**三面板图**，将三个数据并排展示，便于比较。
+每个面板使用相同的 x 轴，自适应 y 轴范围。
+
+选项：
+| # | 类型 | 说明 |
+|---|------|------|
+| 1 | **三面板分开图** | (a) y1, (b) y2, (c) y3，各自有独立 y 轴 |
+| 2 | **三面板共享 Y 轴** | 同一坐标系下三条线，便于比较相对变化 |
+| 3 | **单图多条线** | plt.plot(x, y1, y2, y3)，图例区分 |
+| 4 | **我还是想要单个图** | 跳过，使用传统单图 |
+
+您想要哪种？
+```
+
+**Suggestion format (English):**
+```
+I detected 3 related arrays:
+- `y1` (100 points)
+- `y2` (100 points)
+- `y3` (100 points)
+
+Suggestion: A **three-panel figure** would let you compare all three datasets side by side.
+
+Options:
+| # | Type | Description |
+|---|------|-------------|
+| 1 | **Separate panels** | (a) y1, (b) y2, (c) y3, individual y-axes |
+| 2 | **Shared Y axis** | All three in one plot for relative comparison |
+| 3 | **Single plot, multiple lines** | plt.plot(x, y1, y2, y3) with legend |
+| 4 | **Single figure** | Skip multi-panel, use traditional single plot |
+
+Which would you like?
+```
+
+**If user selects multi-panel:**
+- Proceed to Step 3 with multi-panel chart type
+- Generate code with `fig, axes = plt.subplots(1, 3)` or similar
+- Each panel gets labeled (a), (b), (c) in top-left
+
 ### Step 3: Suggestion Presentation
 
 Present 2-4 chart options as a numbered list:
@@ -188,6 +251,93 @@ Your file contains only scalar values. For publication figures, you'll typically
 Would you like me to generate code with sample data to demonstrate the expected structure?
 ```
 
+### Data File Analysis
+
+If the file contains data loading code (e.g., `np.load`, `np.loadtxt`, `pd.read_csv`), the skill should **analyze the data file** to understand its contents.
+
+**Supported file types:**
+
+| File Type | Loading Code | Analysis Method |
+|-----------|-------------|-----------------|
+| `.npz` | `np.load()` | `npz.files` → list keys |
+| `.npy` | `np.load()` | `.shape`, `.dtype` |
+| `.csv` | `pd.read_csv()` or `np.loadtxt()` | columns, rows, dtypes |
+| `.txt` | `np.loadtxt()` | shape, delimiter detection |
+
+**Analysis flow:**
+```
+1. READ file → Find data loading calls (np.load, pd.read_csv, etc.)
+2. EXECUTE load code in safe context → Get variable names/shapes
+3. REPORT what was found:
+   "检测到您有数据文件 demo_data.nz，包含：
+    - x (100 points)
+    - y (100 points)
+    - mean_y (10 points)"
+4. PROCEED with Variable Analysis Mode using detected variables
+```
+
+**Trigger patterns:**
+```python
+# These patterns should trigger data file analysis:
+data = np.load('file.npz')
+data = np.load('file.npy')
+df = pd.read_csv('file.csv')
+x = np.loadtxt('file.txt')
+```
+
+**Example (Chinese):**
+```
+Skill: 检测到您在文件中加载数据：
+   data = np.load('demo_data.npz')
+
+正在分析文件内容...
+   发现以下数组：
+   | 变量名 | 形状 | 类型 |
+   |--------|------|------|
+   | x | (100,) | float64 |
+   | y | (100,) | float64 |
+   | mean_y | (10,) | float64 |
+   | std_y | (10,) | float64 |
+
+我将使用这些变量来建议图表类型。
+```
+
+**Safety note:**
+- Only execute `np.load()` / `pd.read_csv()` — no arbitrary code
+- If file doesn't exist, ask user to verify path
+- If file is corrupted, report error and suggest regenerating data
+
+**If user mentions a data file without loading code:**
+```
+我注意到您提到了 'data.csv'，但文件中没有加载它的代码。
+请添加数据加载代码，例如：
+   import pandas as pd
+   df = pd.read_csv('data.csv')
+
+或者，如果您想让我分析已加载的变量，请确保文件中有对应的加载代码。
+```
+
+## When to Trigger
+
+Use this skill when the user mentions:
+- "publication figure", "journal figure", "figure for submission", "academic figure"
+- "Nature/Elsevier/Springer/IEEE/PLOS figure"
+- "EPS/PDF/TIFF for journal submission"
+- "ready-to-submit plot"
+- Wants to create a scientific figure that will be submitted to a journal
+
+**File editing mode** (user mentions existing file):
+- "帮我添加绘图到 demo_calculation.py"
+- "在 script.py 中添加 IEEE 标准的图表"
+- "add plotting to my existing file"
+
+Chinese triggers / 中文触发词：
+- "期刊图表", "期刊图片", "发表级图片", "投稿图"
+- "学术图表", "期刊投稿", "科研图表"
+- "Nature/Elsevier/Springer/IEEE/PLOS 图表"
+- "EPS/PDF/TIFF 投稿格式"
+- "帮我添加绘图", "在文件中添加图表"
+
 ### Runtime Error Auto-Fix
 
 When the user runs the script and it fails, they can trigger the skill again with the error message. The skill will analyze and attempt to fix.
@@ -234,8 +384,6 @@ When the user runs the script and it fails, they can trigger the skill again wit
 2. 确认所需的 Python 包已安装（matplotlib, numpy, seaborn）
 3. 或者描述您想要的操作，我会重新生成代码
 ```
-
-## When to Trigger
 
 Use this skill when the user mentions:
 - "publication figure", "journal figure", "figure for submission", "academic figure"
