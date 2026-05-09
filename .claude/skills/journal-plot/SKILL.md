@@ -617,119 +617,194 @@ plt.savefig('figure_1.pdf', format='pdf', dpi=1200, bbox_inches='tight')
 
 ## Usage Examples
 
-### Example 1: Simple scatter plot
-User: "Create a scatter plot showing temperature vs. pressure with error bars for a PLOS ONE paper"
+### Example 1: Variable Analysis with Multi-Panel Suggestion (Chinese)
 
-Generated code uses:
-- Single column width (3.5 inches) or full page (7 inches)
-- Arial font, 8pt base size
-- Error bars with "Mean ± SEM, n=X" notation
-- PLOS ONE settings: 900-1200 dpi, TIFF/EPS, Arial
-- Axis labels in quantity-unit format
-
-### Example 2: Multi-panel figure
-User: "Make a two-panel figure for Elsevier with (a) bar chart and (b) line plot"
-
-Generated code:
-- Two axes side by side
-- Each panel labelled (a), (b) top-left
-- Elsevier overrides: 1000 dpi, EPS/TIFF, Arial/Helvetica
-- Vector format
-
-### Example 3: Refactor existing code
-User: "Take my existing matplotlib code and adjust it for Nature"
-
-Generated code:
-- Apply Nature settings: 300 dpi max, RGB, JPEG or TIFF
-- Keep user's plot structure but update font/size/format
-
-### Example 4: Variable Analysis - Chinese user
-**User**: 帮我添加绘图到 demo_data.py
+**User**: 帮我分析 data.py 并绘图
 
 **Skill**:
-正在读取 demo_data.py...
+正在读取 data.py...
 
-在您的文件中检测到以下变量：
+检测到以下变量：
 | 变量名 | 类型 | 形状 |
 |--------|------|------|
-| `x` | numpy.ndarray | (100,) |
-| `y` | numpy.ndarray | (100,) |
-| `mean_y` | numpy.ndarray | (10,) |
-| `std_y` | numpy.ndarray | (10,) |
+| `time` | numpy.ndarray | (100,) |
+| `y1` | numpy.ndarray | (100,) |
+| `y2` | numpy.ndarray | (100,) |
+| `y3` | numpy.ndarray | (100,) |
+
+检测到您有 3 个相关数组（y1, y2, y3），建议制作**三面板图**：
+
+| # | 类型 | 说明 |
+|---|------|------|
+| 1 | **三面板分开图** | (a) y1, (b) y2, (c) y3，各自有独立 y 轴 |
+| 2 | **三面板共享 Y 轴** | 同一坐标系下三条线，便于比较相对变化 |
+| 3 | **单图三条线** | plt.plot(time, y1, y2, y3)，图例区分 |
+| 4 | **我还是想要单个图** | 跳过，使用传统单图 |
+
+**User**: 1
+
+**Skill**:
+好的，将创建**三面板分开图**。
+
+坐标轴标签推断：
+- `time` → Time (s) ✓
+- `y1`, `y2`, `y3` → 无匹配，使用变量名
+
+请问您打算投稿到哪个期刊？（IEEE / Nature / Elsevier / Springer / PLOS ONE）
+
+**User**: IEEE
+
+**Skill**:
+正在生成 IEEE 标准三面板误差棒图代码...
+[Code injection with IEEE settings: 300 dpi, EPS, Times New Roman, fig, axes = plt.subplots(1, 3)]
+
+代码已注入。设置 `PLOT_FIGURE = True` 后运行即可生成图表。
+
+---
+
+### Example 2: Axis Label Inference with Ambiguity (English)
+
+**User**: add plotting to experiment.py
+
+**Skill**:
+Reading experiment.py...
+
+Found variables:
+| Variable | Type | Shape |
+|----------|------|-------|
+| `temperature` | numpy.ndarray | (50,) |
+| `pressure` | numpy.ndarray | (50,) |
+
+Based on your data, suggested chart types:
+| # | Chart Type | Best For |
+|---|------------|----------|
+| 1 | **Scatter plot** | Correlations between two variables |
+| 2 | **Line plot** | Trends if treated as time series |
+
+Which would you like?
+
+**User**: scatter
+
+**Skill**:
+Axis label inference:
+- `temperature` → Temperature (°C) or Temperature (K)?
+  I detected 'temp' in variable name but cannot determine unit:
+  - Temperature (°C)
+  - Temperature (K)
+  Which would you like? Or provide custom label.
+
+**User**: K
+
+**Skill**:
+Using Temperature (K) for x-axis.
+
+Target journal?
+
+**User**: Nature
+
+[Code injection with Nature settings: 300 dpi max, RGB, JPEG/TIFF, Arial]
+
+---
+
+### Example 3: Data File Analysis (Chinese)
+
+**User**: 分析 demo_data.npz 并绘图
+
+**Skill**:
+检测到您在文件中加载数据：
+```python
+data = np.load('demo_data.npz')
+```
+
+正在分析文件内容...
+发现以下数组：
+| 变量名 | 形状 | 类型 |
+|--------|------|------|
+| `x` | (100,) | float64 |
+| `y` | (100,) | float64 |
+| `mean_y` | (10,) | float64 |
+| `std_y` | (10,) | float64 |
 
 建议的图表类型：
-
 | # | 图表类型 | 适用场景 | 原因 |
 |---|----------|----------|------|
-| 1 | **误差棒折线图** | 测量数据与不确定性 | 您有 `mean_y` 和 `std_y`；误差棒显示变异性 |
-| 2 | **散点图** | 相关性 | `x` 和 `y` 长度相同（100点）；适合展示两者关系 |
-| 3 | **折线图** | 趋势变化 | 连续数据；适合展示 `y` 随 `x` 的变化趋势 |
-
-您想要哪种图表类型？输入编号或描述您想要的图表。
+| 1 | **误差棒折线图** | 测量数据与不确定性 | 您有 `mean_y` 和 `std_y` |
+| 2 | **散点图** | x-y 关系 | `x` 和 `y` 长度相同 |
+| 3 | **折线图** | 趋势变化 | 连续数据 |
 
 **User**: 1
 
 **Skill**:
 好的，将为您创建**误差棒折线图**。
+请问您打算投稿到哪个期刊？
 
-请问您打算投稿到哪个期刊？（IEEE / Nature / Elsevier / Springer / PLOS ONE / 其他）
+---
 
-**User**: IEEE
+### Example 4: Runtime Error Auto-Fix (Chinese)
 
-**Skill**:
-正在生成 IEEE 标准的误差棒折线图代码...
-[Code injection with IEEE settings: 300 dpi, EPS, Times New Roman]
-
-代码已注入。设置 `PLOT_FIGURE = True` 后运行即可生成图表。
-
-### Example 5: Variable Analysis - English user
-**User**: add plotting to my_file.py
+**User**: 运行报错了
 
 **Skill**:
-Reading my_file.py...
+请粘贴错误信息。
 
-Found variables:
-| Variable | Type | Shape |
-|----------|------|-------|
-| `time` | numpy.ndarray | (50,) |
-| `velocity` | numpy.ndarray | (50,) |
-| `velocity_std` | numpy.ndarray | (50,) |
-
-Based on your data, here are suggested chart types:
-
-| # | Chart Type | Best For | Reasoning |
-|---|------------|----------|-----------|
-| 1 | **Error bar plot** | Measurements with uncertainty | You have `velocity_std`; error bars show variability |
-| 2 | **Line plot** | Trends over time | `time` in variable name suggests time series |
-| 3 | **Scatter plot** | Correlations | Two paired arrays of same length |
-
-Which would you like? Enter number or describe your desired plot.
-
-**User**: error bar plot please
+**User**:
+```
+NameError: name 'x' is not defined
+```
 
 **Skill**:
-I'll create an **error bar plot** for you.
+正在分析错误...
 
-Target journal? (IEEE / Nature / Elsevier / Springer / PLOS ONE)
+检测到 `'x'` 未定义。检查您的文件后发现：
+- 您有 `time` 变量（形状 (100,)）
+- 您有 `velocity` 变量（形状 (100,)）
 
-**User**: PLOS ONE
+您是想用 `time` 代替 `x` 吗？或者请告诉我正确的变量名。
 
-**Skill**:
-Generating PLOS ONE error bar plot...
-[Code injection with PLOS ONE settings: 900-1200 dpi, TIFF/EPS, Arial]
-
-Code injected. Set `PLOT_FIGURE = True` and run to generate figure.
-
-### Example 6: Direct specification (skip analysis)
-**User**: 在 demo_data.py 中添加 IEEE 标准的散点图
+**User**: 对，用 time
 
 **Skill**:
-Reading demo_data.py...
+已将绘图代码中的 `x` 替换为 `time`。
 
-Found variables: `x` (100,), `y` (100,)
+修复后的代码：
+```python
+ax.errorbar(time, velocity, yerr=velocity_std, ...)
+```
 
-您指定了散点图和 IEEE 标准，我将直接生成代码。
-[Skips suggestion step, goes directly to code generation with IEEE settings]
+设置 `PLOT_FIGURE = True` 后再试一下。
+
+---
+
+### Example 5: Direct Specification (Skip Analysis)
+
+**User**: 在 experiment.py 中添加 IEEE 标准的散点图
+
+**Skill**:
+Reading experiment.py...
+
+Found variables: `temperature` (50,), `pressure` (50,)
+
+您指定了散点图和 IEEE 标准，直接生成代码。
+[Skips suggestion step, applies IEEE settings: 300 dpi, EPS, Times New Roman]
+
+---
+
+### Example 6: Duplicate Injection Prevention
+
+**User**: 再次添加绘图到 experiment.py
+
+**Skill**:
+检测到文件中已有 `plot_journal_figure()` 函数。
+
+是否覆盖现有函数？
+- 是：替换函数体（保留原有签名）
+- 否：退出，使用现有函数
+
+**User**: 否
+
+**Skill**:
+好的，保留现有 `plot_journal_figure()` 函数。
+您可以直接调用它，或设置 `PLOT_FIGURE = True` 运行。
 
 ## Interaction Guidelines
 

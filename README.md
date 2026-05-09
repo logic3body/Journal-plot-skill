@@ -24,12 +24,19 @@ Then invoke with `/journal-plot` in Claude Code.
 
 ## Features
 
+- **Smart variable analysis**: Parses your Python file (AST) to detect numpy arrays, shapes, and types
+- **Proactive chart suggestions**: Analyzes your data and suggests 2-4 chart types with reasoning
+- **Multi-panel recommendation**: Automatically suggests multi-panel figures when 3+ related arrays are detected
+- **Axis label inference**: Maps variable names to quantity-unit labels (e.g., `velocity` → "Velocity (m/s)"); asks when uncertain
 - **Multi-publisher support**: Settings for Nature, Elsevier, Springer, IEEE, PLOS ONE, Cell Press, Science, PNAS
 - **Publication-quality defaults**: Arial font, 1200 dpi vector output, golden-ratio dimensions
 - **Color-blind friendly**: Viridis/cividis palettes, warns about red-green only combinations
 - **Self-explanatory figures**: Quantity-unit axis labels, error bar definitions, statistical annotations
-- **Code skeleton**: Ready-to-run template with global rcParams
+- **Data file analysis**: Analyzes `.npz`, `.npy`, `.csv` files loaded in your script
+- **Runtime error auto-fix**: Detects common errors and proposes fixes
 - **File injection mode**: Adds plotting code directly to your existing scripts
+- **Duplicate injection prevention**: Detects existing plotting functions before modifying files
+- **Bilingual support**: Full Chinese/English trigger keywords and responses
 
 ## Usage
 
@@ -114,6 +121,9 @@ if PLOT_FIGURE:
 | Elsevier | 1000 | EPS, TIFF | Arial/Helvetica |
 | IEEE | 300 | EPS, TIFF | Times New Roman |
 | PLOS ONE | 900-1200 | TIFF, EPS | Arial |
+| Cell Press | 600 | PDF, EPS | Arial |
+| Science | 300 | TIFF, JPEG | Arial |
+| PNAS | 300-600 | EPS, TIFF | Arial |
 | Default | 1200 | PDF, EPS | Arial |
 
 ## Requirements
@@ -140,12 +150,19 @@ pip install matplotlib seaborn
 
 ## 功能特点
 
+- **智能变量分析**：通过 AST 解析检测 numpy 数组、形状和类型
+- **主动图表建议**：分析数据后主动建议 2-4 种图表类型并说明原因
+- **多面板建议**：检测到 3+ 相关数组时自动建议多面板图
+- **坐标轴标签推断**：将变量名映射到带单位的标签（如 `velocity` → "Velocity (m/s)"）；不确定时询问用户
 - **多出版机构支持**：Nature、Elsevier、Springer、IEEE、PLOS ONE、Cell Press、Science、PNAS 的设置
 - **发表级默认配置**：Arial 字体、1200 dpi 矢量输出、黄金比例尺寸
 - **色盲友好**：Viridis/cividis 色板，对红绿组合发出警告
 - **自解释图表**：带量纲的坐标轴标签、误差棒定义、统计注释
-- **代码骨架**：包含全局 rcParams 的可直接运行的模板
+- **数据文件分析**：分析脚本中加载的 `.npz`、`.npy`、`.csv` 文件
+- **运行失败自动修复**：检测常见错误并提出修复方案
 - **文件注入模式**：可将绘图代码直接添加到现有脚本中
+- **重复注入防护**：修改文件前检测已有绘图函数，防止重复注入
+- **中英双语支持**：触发词和响应均支持中文/英文
 
 ## 使用方法
 
@@ -230,6 +247,9 @@ if PLOT_FIGURE:
 | Elsevier | 1000 | EPS, TIFF | Arial/Helvetica |
 | IEEE | 300 | EPS, TIFF | Times New Roman |
 | PLOS ONE | 900-1200 | TIFF, EPS | Arial |
+| Cell Press | 600 | PDF, EPS | Arial |
+| Science | 300 | TIFF, JPEG | Arial |
+| PNAS | 300-600 | EPS, TIFF | Arial |
 | 默认 | 1200 | PDF, EPS | Arial |
 
 ## 依赖要求
