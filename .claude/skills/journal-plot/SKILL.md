@@ -9,64 +9,40 @@ Generate Python/matplotlib code for figures that meet international journal subm
 
 ## Core Capability
 
-When the user describes a figure request, the skill should:
+When the user describes a figure request, the skill follows this **Smart Analysis Flow**:
 
-1. **Read the user's existing Python file** (e.g., demo_calculation.py)
-2. **Analyze the file structure** - identify existing data variables (x, y, arrays, etc.)
-3. **Check for existing injection** - detect if `plot_journal_figure` already exists
-4. **Inject journal-grade plotting code** following the injection rules below
-5. **Preserve all original computation logic** - never modify existing code
-
-### Injection Decision Tree (Pseudocode)
+### New Flow: Variable Analysis → Suggestion → Generate
 
 ```
 1. READ file content
 
-2. IF `def plot_journal_figure` exists in file:
-   → ASK user: "文件已存在绘图函数，是否覆盖？"
-   → IF user says NO:
-       → INFORM user they can call existing function directly
-       → EXIT
-   → IF user says YES:
-       → REPLACE only function body (keep existing signature)
-       → EXIT injection part
-   → END
+2. ANALYZE variables (AST parsing):
+   → Extract numpy arrays: names, inferred shapes, types
+   → Identify scalar values and summary statistics
+   → Report: "Found: x (100,), y (100,), mean_y (10,)"
 
-3. IF `def plot_journal_figure` does NOT exist:
-   → ANALYZE file structure:
-     a. IF first def/class found:
-        → INSERT `import matplotlib.pyplot as plt` BEFORE it
-        → APPEND plotting code block to end of file
-     b. ELSE IF `import numpy as np` found:
-        → INSERT `import matplotlib.pyplot as plt` AFTER it
-        → APPEND plotting code block to end of file
-     c. ELSE (no imports at all):
-        → INSERT after shebang + docstring
-        → APPEND plotting code block to end of file
-   → END
+3. IF user specified chart type explicitly ("scatter plot", "散点图"):
+   → Skip suggestion step
+   → Proceed to step 5
+   ELSE:
+   → PRESENT 2-4 chart options with reasoning (see Variable Analysis Mode)
+   → ASK user to select: "Which chart type would you like?"
+   → Wait for user response
 
-4. VALIDATE required variables (x, y, etc.) exist in file:
-   → IF missing:
-       → ERROR: "文件缺少必要的数据变量，请先确保 {var_names} 存在"
-       → EXIT without injecting
-   → IF all present:
-       → PROCEED with injection
+4. CONFIRM journal if not specified:
+   → "What is your target journal?" / "您打算投稿到哪个期刊？"
 
-5. APPEND to end of file:
-   ```python
-   # === Optional Journal-Grade Plotting ===
-   PLOT_FIGURE = False  # Set to True to enable plotting
+5. CHECK for existing `plot_journal_figure`:
+   → EXISTS → Ask overwrite, replace body only if confirmed
+   → NOT EXISTS → Proceed with injection
 
-   def plot_journal_figure(x, y, publisher='IEEE'):
-       """Generate publication-ready figure"""
-       import matplotlib.pyplot as plt
-       # ... matplotlib code with journal settings ...
-       pass
+6. INJECT code:
+   → Find appropriate import insertion point
+   → Append conditional plotting block to end of file
+   → Validate required variables exist
 
-   if PLOT_FIGURE:
-       # Uses existing data from the file
-       plot_journal_figure(x, y, publisher='IEEE')
-   ```
+7. CONFIRM completion:
+   → "Code injected. Set PLOT_FIGURE = True and run to generate figure."
 ```
 
 ### Key Injection Rules
@@ -85,6 +61,117 @@ When the user describes a figure request, the skill should:
 - Reuse variables already defined in the file (x, y, mean_y, etc.)
 - Default to `PLOT_FIGURE = False` so running the script doesn't show plots unless explicitly enabled
 - When user enables PLOT_FIGURE and runs the script, figure appears
+- **NEW**: Analyze variables first, suggest chart types, then generate
+
+## Variable Analysis Mode
+
+When the user asks for plotting **without specifying chart type**, the skill enters Variable Analysis Mode.
+
+### Step 1: Variable Detection (AST Parsing)
+
+Parse the user's Python file using `ast` module to extract:
+
+| Property | Detection Method | Example |
+|----------|------------------|---------|
+| Variable name | AST `Assign` nodes | `temperature = np.array([...])` → `temperature` |
+| Type | Detect `np.array()`, `np.linspace()`, `np.random.normal()`, etc. | numpy.ndarray |
+| Inferred shape | From constant args or `.shape` attribute | `(100,)`, `(50, 3)`, `(10, 10)` |
+
+**Target patterns:**
+```python
+x = np.linspace(0, 10, 100)        # name='x', type='numpy.ndarray', shape=(100,)
+y = np.sin(x)                      # name='y', type='numpy.ndarray', shape=(100,)
+mean_y = np.mean(y)                # name='mean_y', type='scalar'
+error = np.std(y) / np.sqrt(n)     # name='error', type='scalar'
+```
+
+### Step 2: Chart Type Inference
+
+Based on detected variables and their properties:
+
+| Condition | Inferred Chart Type | Reasoning |
+|-----------|---------------------|----------|
+| 1D array + name contains `time` | Line plot (time series) | Temporal data suits connected points |
+| 2 arrays of same length | Scatter plot | Bivariate data, x-y relationship |
+| Name contains `mean` + `std`/`error` | Error bar plot | Summary statistics with uncertainty |
+| 2D square-ish array | Heatmap | Matrix data suits color grid |
+| Name contains `count`/`freq`/`category` | Bar chart | Categorical/frequency data |
+
+**Name-based keyword inference:**
+```python
+time_keywords = {'time', 't', 'timestamp', 'date', 'hour'}
+heatmap_keywords = {'grid', 'spatial', 'map', 'latitude', 'longitude'}
+bar_keywords = {'count', 'freq', 'category', 'label', 'group'}
+error_keywords = {'mean', 'std', 'error', 'sem', 'uncertainty'}
+```
+
+### Step 3: Suggestion Presentation
+
+Present 2-4 chart options as a numbered list:
+
+**English:**
+```
+Based on your data, I detected:
+- `x` (100 points, 1D array)
+- `y` (100 points, 1D array)
+- `mean_y` (10 points, 1D array)
+- `std_y` (10 points, 1D array)
+
+Suggested chart types:
+
+| # | Chart Type | Best For | Reasoning |
+|---|------------|----------|-----------|
+| 1 | **Error bar plot** | Measurements with uncertainty | You have `mean_y` and `std_y`; error bars show variability |
+| 2 | **Scatter plot** | Correlations | `x` and `y` are same length (100); ideal for x-y relationships |
+| 3 | **Line plot** | Trends | Continuous data; good for showing `y` over `x` |
+
+Which chart type would you like? Enter a number or describe your desired plot.
+```
+
+**中文:**
+```
+根据您的数据，我检测到：
+- `x`（100个点，一维数组）
+- `y`（100个点，一维数组）
+- `mean_y`（10个点，一维数组）
+- `std_y`（10个点，一维数组）
+
+建议的图表类型：
+
+| # | 图表类型 | 适用场景 | 原因 |
+|---|----------|----------|------|
+| 1 | **误差棒折线图** | 测量数据与不确定性 | 您有 `mean_y` 和 `std_y`；误差棒显示变异性 |
+| 2 | **散点图** | 相关性 | `x` 和 `y` 长度相同（100点）；适合展示两者关系 |
+| 3 | **折线图** | 趋势变化 | 连续数据；适合展示 `y` 随 `x` 的变化趋势 |
+
+您想要哪种图表类型？输入编号或描述您想要的图表。
+```
+
+### Step 4: User Selection Handling
+
+- **Number input (1, 2, 3)**: Use that chart type
+- **Natural language**: Parse keywords (scatter/散点, line/折线, bar/柱状, error/误差)
+- **No specific request**: Use first suggestion, confirm before proceeding
+
+### Edge Cases
+
+**No numpy variables found:**
+```
+I couldn't find any numpy arrays in your file. Please ensure your data is stored as:
+- numpy arrays: `x = np.array([...])`
+- numpy functions: `x = np.linspace(0, 10, 100)`
+
+Or specify your desired chart type directly and I can generate code with sample data.
+```
+
+**Only scalars found:**
+```
+Your file contains only scalar values. For publication figures, you'll typically need:
+- 1D arrays for line/scatter plots
+- 2D arrays for heatmaps
+
+Would you like me to generate code with sample data to demonstrate the expected structure?
+```
 
 ## When to Trigger
 
@@ -303,7 +390,127 @@ Generated code:
 - Apply Nature settings: 300 dpi max, RGB, JPEG or TIFF
 - Keep user's plot structure but update font/size/format
 
+### Example 4: Variable Analysis - Chinese user
+**User**: 帮我添加绘图到 demo_data.py
+
+**Skill**:
+正在读取 demo_data.py...
+
+在您的文件中检测到以下变量：
+| 变量名 | 类型 | 形状 |
+|--------|------|------|
+| `x` | numpy.ndarray | (100,) |
+| `y` | numpy.ndarray | (100,) |
+| `mean_y` | numpy.ndarray | (10,) |
+| `std_y` | numpy.ndarray | (10,) |
+
+建议的图表类型：
+
+| # | 图表类型 | 适用场景 | 原因 |
+|---|----------|----------|------|
+| 1 | **误差棒折线图** | 测量数据与不确定性 | 您有 `mean_y` 和 `std_y`；误差棒显示变异性 |
+| 2 | **散点图** | 相关性 | `x` 和 `y` 长度相同（100点）；适合展示两者关系 |
+| 3 | **折线图** | 趋势变化 | 连续数据；适合展示 `y` 随 `x` 的变化趋势 |
+
+您想要哪种图表类型？输入编号或描述您想要的图表。
+
+**User**: 1
+
+**Skill**:
+好的，将为您创建**误差棒折线图**。
+
+请问您打算投稿到哪个期刊？（IEEE / Nature / Elsevier / Springer / PLOS ONE / 其他）
+
+**User**: IEEE
+
+**Skill**:
+正在生成 IEEE 标准的误差棒折线图代码...
+[Code injection with IEEE settings: 300 dpi, EPS, Times New Roman]
+
+代码已注入。设置 `PLOT_FIGURE = True` 后运行即可生成图表。
+
+### Example 5: Variable Analysis - English user
+**User**: add plotting to my_file.py
+
+**Skill**:
+Reading my_file.py...
+
+Found variables:
+| Variable | Type | Shape |
+|----------|------|-------|
+| `time` | numpy.ndarray | (50,) |
+| `velocity` | numpy.ndarray | (50,) |
+| `velocity_std` | numpy.ndarray | (50,) |
+
+Based on your data, here are suggested chart types:
+
+| # | Chart Type | Best For | Reasoning |
+|---|------------|----------|-----------|
+| 1 | **Error bar plot** | Measurements with uncertainty | You have `velocity_std`; error bars show variability |
+| 2 | **Line plot** | Trends over time | `time` in variable name suggests time series |
+| 3 | **Scatter plot** | Correlations | Two paired arrays of same length |
+
+Which would you like? Enter number or describe your desired plot.
+
+**User**: error bar plot please
+
+**Skill**:
+I'll create an **error bar plot** for you.
+
+Target journal? (IEEE / Nature / Elsevier / Springer / PLOS ONE)
+
+**User**: PLOS ONE
+
+**Skill**:
+Generating PLOS ONE error bar plot...
+[Code injection with PLOS ONE settings: 900-1200 dpi, TIFF/EPS, Arial]
+
+Code injected. Set `PLOT_FIGURE = True` and run to generate figure.
+
+### Example 6: Direct specification (skip analysis)
+**User**: 在 demo_data.py 中添加 IEEE 标准的散点图
+
+**Skill**:
+Reading demo_data.py...
+
+Found variables: `x` (100,), `y` (100,)
+
+您指定了散点图和 IEEE 标准，我将直接生成代码。
+[Skips suggestion step, goes directly to code generation with IEEE settings]
+
 ## Interaction Guidelines
+
+### New Variable Analysis Flow
+
+1. **Detect variables first**: When user asks for plotting without specifics, parse the file and report what was found
+   - "我在文件中检测到以下变量：`x` (100点), `y` (100点), `mean_y` (10点)"
+   - "I found these variables in your file: `x` (100 pts), `y` (100 pts), `mean_y` (10 pts)"
+
+2. **Present suggestions proactively**: Offer 2-4 chart types with brief reasoning
+   - Use numbered list format for easy selection
+   - Include reasoning based on variable names and shapes
+
+3. **Handle selection**:
+   - Number input → use that chart type
+   - Natural language → interpret keywords (scatter/散点, line/折线, bar/柱状, error/误差)
+   - No specific request → use first suggestion, confirm before proceeding
+
+4. **Confirm before injection**: After selection, briefly confirm the plan
+   - "我将为您创建误差棒折线图，使用IEEE格式设置，可以吗？"
+   - "I'll create an error bar line plot with IEEE settings. Proceed?"
+
+5. **Journal check**: Ask if not specified
+   - "您打算投稿到哪个期刊？" / "What is your target journal?"
+
+### Legacy Direct Injection (unchanged)
+
+When user **specifies** chart type explicitly:
+- "为 IEEE 创建带误差棒的散点图"
+- "Create a scatter plot with error bars for Nature"
+
+→ Skip suggestion step, go directly to code generation
+
+### Original Guidelines (apply throughout)
 
 1. **Always ask**: "What is your target journal?" if not specified — allows precision
    - 也可以用中文问："您打算投稿到哪个期刊？"
